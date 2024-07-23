@@ -46,8 +46,8 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn parse_src(fd: std::fs::File) -> serde_yaml::Result<serde_json::Value> {
-    serde_yaml::from_reader(fd)
+fn parse_src(fd: std::fs::File) -> serde_yml::Result<serde_json::Value> {
+    serde_yml::from_reader(fd)
 }
 
 fn validate_paths(doc: &serde_json::Value) -> bool {
