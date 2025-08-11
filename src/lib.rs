@@ -5,8 +5,9 @@ use std::fs::File;
 
 pub use crate::config::Config;
 use crate::schemas::{validate_as_action, validate_as_workflow};
-use glob::glob;
 
+/// # Errors
+/// Returns an error if the validation fails.
 pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     let fd = File::open(&config.src)?;
     let doc = parse_src(fd)?;
@@ -71,18 +72,28 @@ fn validate_globs(globs: &serde_json::Value, path: &str) -> bool {
     } else {
         let mut success = true;
 
-        for g in globs.as_array().unwrap() {
-            match glob(g.as_str().unwrap()) {
-                Ok(res) => {
-                    if res.count() == 0 {
-                        eprintln!("Glob {} in {} does not match any files", g, path);
-                        success = false;
+        if let Some(globs) = globs.as_array() {
+            for glob in globs {
+                let Some(g) = glob.as_str() else {
+                    eprintln!("Expected string for {path}");
+                    success = false;
+                    continue;
+                };
+                match glob::glob(g) {
+                    Ok(res) => {
+                        if res.count() == 0 {
+                            eprintln!("Glob {glob} in {path} does not match any files");
+                            success = false;
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Glob {glob} in {path} is invalid: {e}");
                     }
                 }
-                Err(e) => {
-                    eprintln!("Glob {} in {} is invalid: {}", g, path, e);
-                }
-            };
+            }
+        } else {
+            eprintln!("Expected array for {path}");
+            success = false;
         }
 
         success
